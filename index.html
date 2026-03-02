@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sound Explorer — Earth Harmony Sound & Wellness</title>
+<meta name="description" content="Explore the healing instruments of Earth Harmony. Click to hear singing bowls, gongs, handpan, and more. Experience sound healing in Edmonton.">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lucero&family=Inter:wght@300;400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    color: #e0d6c8;
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 30px 20px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .header h1 {
+    font-family: 'Lucero', serif;
+    font-size: 2.2rem;
+    color: #D4951A;
+    margin-bottom: 8px;
+  }
+  .header p {
+    font-size: 1rem;
+    color: #888;
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* Active layers indicator */
+  .active-layers {
+    text-align: center;
+    margin-bottom: 30px;
+    min-height: 36px;
+  }
+  .active-layers .label {
+    font-size: 0.7rem;
+    color: #D4951A;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .active-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .active-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    transition: all 0.5s ease;
+    opacity: 0;
+    transform: scale(0);
+  }
+  .active-dot.on {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 12px currentColor;
+  }
+
+  /* Canvas for visualizer */
+  .visualizer-wrap {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    margin-bottom: 30px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #111;
+  }
+  #visualizer {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Instrument Grid */
+  .instruments {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .instrument-card {
+    background: #141414;
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 24px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .instrument-card:hover {
+    border-color: #333;
+    transform: translateY(-2px);
+  }
+  .instrument-card.active {
+    border-color: var(--inst-color);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--inst-color) 30%, transparent);
+  }
+  .instrument-card.active .inst-icon {
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  /* Ripple effect */
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: var(--inst-color);
+    opacity: 0.3;
+    transform: scale(0);
+    animation: rippleAnim 1.5s ease-out forwards;
+    pointer-events: none;
+  }
+  @keyframes rippleAnim {
+    to { transform: scale(4); opacity: 0; }
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+
+  .inst-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    display: block;
+    transition: transform 0.3s ease;
+  }
+  .inst-name {
+    font-family: 'Lucero', serif;
+    font-size: 1.1rem;
+    color: #e0d6c8;
+    margin-bottom: 4px;
+  }
+  .inst-origin {
+    font-size: 0.75rem;
+    color: #666;
+    margin-bottom: 10px;
+  }
+  .inst-desc {
+    font-size: 0.82rem;
+    color: #999;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  .inst-properties {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .inst-tag {
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: #1a1a1a;
+    color: #888;
+    border: 1px solid #2a2a2a;
+    letter-spacing: 0.5px;
+  }
+  .inst-cta {
+    display: inline-block;
+    font-size: 0.75rem;
+    color: #D4951A;
+    text-decoration: none;
+    letter-spacing: 1px;
+    transition: opacity 0.2s;
+    opacity: 0;
+  }
+  .instrument-card.active .inst-cta,
+  .instrument-card:hover .inst-cta {
+    opacity: 1;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+  }
+  .ctrl-btn {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #ccc;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .ctrl-btn:hover {
+    background: #222;
+    border-color: #D4951A;
+    color: #D4951A;
+  }
+
+  /* Lead capture */
+  .lead-capture {
+    background: linear-gradient(135deg, #1a1611, #141414);
+    border: 1px solid #2a2218;
+    border-radius: 16px;
+    padding: 35px 30px;
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .lead-capture h2 {
+    font-family: 'Lucero', serif;
+    font-size: 1.4rem;
+    color: #D4951A;
+    margin-bottom: 10px;
+  }
+  .lead-capture p {
+    font-size: 0.9rem;
+    color: #999;
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  .lead-form {
+    display: flex;
+    gap: 10px;
+    max-width: 420px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .lead-form input {
+    flex: 1;
+    min-width: 200px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    background: #0d0d0d;
+    color: #e0d6c8;
+    font-size: 0.9rem;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .lead-form input:focus {
+    border-color: #D4951A;
+  }
+  .lead-form input::placeholder {
+    color: #555;
+  }
+  .lead-form button {
+    background: #D4951A;
+    color: #000;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    letter-spacing: 1px;
+    font-family: 'Inter', sans-serif;
+    transition: background 0.2s;
+  }
+  .lead-form button:hover {
+    background: #e5a62b;
+  }
+  .lead-success {
+    display: none;
+    color: #D4951A;
+    font-size: 0.95rem;
+    margin-top: 12px;
+  }
+
+  /* Event link section */
+  .event-link {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  .event-link a {
+    display: inline-block;
+    border: 1px solid #D4951A;
+    color: #D4951A;
+    padding: 12px 28px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  .event-link a:hover {
+    background: #D4951A;
+    color: #000;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 0.75rem;
+    color: #444;
+  }
+  .footer a { color: #D4951A; text-decoration: none; }
+
+  /* Info panel */
+  .info-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #1a1a1a;
+    border-top: 1px solid #333;
+    padding: 20px 24px;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 100;
+    max-height: 45vh;
+    overflow-y: auto;
+  }
+  .info-panel.open { transform: translateY(0); }
+  .info-panel .close-btn {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+  .info-panel h3 {
+    font-family: 'Lucero', serif;
+    color: #D4951A;
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+  }
+  .info-panel .info-body {
+    font-size: 0.88rem;
+    color: #bbb;
+    line-height: 1.7;
+  }
+  .info-panel .info-healing {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #2a2a2a;
+  }
+  .info-panel .info-healing-title {
+    font-size: 0.7rem;
+    color: #D4951A;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .info-link {
+    display: inline-block;
+    margin-top: 14px;
+    color: #D4951A;
+    text-decoration: none;
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 600px) {
+    .header h1 { font-size: 1.6rem; }
+    .instruments { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .instrument-card { padding: 16px 14px; }
+    .inst-icon { font-size: 2rem; }
+    .inst-desc { display: none; }
+    .visualizer-wrap { height: 140px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <h1>🔔 Sound Explorer</h1>
+    <p>Tap an instrument to hear it. Layer sounds together. Discover what resonates with you.</p>
+  </div>
+
+  <div class="active-layers">
+    <div class="label" id="layerLabel"></div>
+    <div class="active-dots" id="activeDots"></div>
+  </div>
+
+  <div class="visualizer-wrap">
+    <canvas id="visualizer"></canvas>
+  </div>
+
+  <div class="instruments" id="instrumentGrid"></div>
+
+  <div class="controls">
+    <button class="ctrl-btn" onclick="clearAll()">Clear All</button>
+    <button class="ctrl-btn" id="infoToggle" onclick="toggleInfoMode()">ℹ️ Learn More</button>
+  </div>
+
+  <div class="lead-capture">
+    <h2>Feel This In Person</h2>
+    <p>Screens can only do so much. The real experience happens when sound moves through your whole body. Join our community for live sound baths, gong immersions, and drumming circles in Edmonton.</p>
+    <div class="lead-form" id="leadForm">
+      <input type="text" id="leadName" placeholder="First name">
+      <input type="email" id="leadEmail" placeholder="Your email">
+      <button onclick="submitLead()">I'M IN →</button>
+    </div>
+    <div class="lead-success" id="leadSuccess">✨ Welcome to the circle. Check your inbox.</div>
+  </div>
+
+  <div class="event-link">
+    <a href="https://materiaaurelia.github.io/events-hub/">VIEW UPCOMING SOUND EXPERIENCES →</a>
+  </div>
+
+  <div class="footer">
+    <a href="https://www.earthharmonysoundwellness.com">Earth Harmony Sound & Wellness</a> · Edmonton, AB
+  </div>
+
+</div>
+
+<!-- Info Panel -->
+<div class="info-panel" id="infoPanel">
+  <button class="close-btn" onclick="closeInfo()">×</button>
+  <h3 id="infoTitle"></h3>
+  <div class="info-body" id="infoBody"></div>
+</div>
+
+<script>
+// ============================================
+// INSTRUMENT CONFIGURATION
+// ============================================
+const instruments = [
+  {
+    id: 'singing-bowl',
+    name: 'Tibetan Singing Bowl',
+    icon: '🔔',
+    color: '#D4951A',
+    origin: 'Himalayan Tradition',
+    desc: 'Rich fundamental tone with shimmering overtones. The classic sound of meditation.',
+    tags: ['Grounding', 'Heart Opening', 'Meditation'],
+    healing: 'Singing bowls produce a complex fundamental tone plus harmonics that entrain brainwaves toward alpha and theta states. The beating frequencies between overtones create a natural binaural effect, promoting deep relaxation without headphones.',
+    eventType: 'sound-bath',
+    eventText: 'Experience live → Deep Symphonic Sound Bath',
+    // Synthesis parameters
+    synth: {
+      type: 'bowl',
+      fundamental: 256,
+      harmonics: [1, 2.71, 4.95, 7.57],
+      harmonicAmps: [1, 0.6, 0.3, 0.15],
+      decay: 8,
+      shimmer: 0.02
+    }
+  },
+  {
+    id: 'crystal-bowl',
+    name: 'Crystal Singing Bowl',
+    icon: '💎',
+    color: '#88c8ff',
+    origin: 'Modern Sound Healing',
+    desc: 'Pure, clear tone that fills the entire room. Made from 99.9% crushed quartz.',
+    tags: ['Clarity', 'Crown Chakra', 'Purifying'],
+    healing: 'Crystal bowls produce an almost pure sine wave with minimal overtones, creating a deeply penetrating tone. The sustained vibration can be felt physically in the chest and skull, activating the parasympathetic nervous system.',
+    eventType: 'sound-bath',
+    eventText: 'Experience live → Community Sound Bath',
+    synth: {
+      type: 'crystal',
+      fundamental: 432,
+      harmonics: [1, 2, 3],
+      harmonicAmps: [1, 0.08, 0.03],
+      decay: 12,
+      shimmer: 0.005
+    }
+  },
+  {
+    id: 'gong',
+    name: 'Symphonic Gong',
+    icon: '🌊',
+    color: '#9b59b6',
+    origin: 'Ancient Asia · Bronze Age',
+    desc: 'A full spectrum of sound — from subsonic rumble to crystalline highs. Transformative.',
+    tags: ['Full Spectrum', 'Deep Release', 'Transformative'],
+    healing: 'The gong produces every frequency simultaneously — a true full-spectrum instrument. It creates unpredictable harmonic movement that prevents the analytical mind from "tracking" the sound, allowing surrender into deep theta and even delta brainwave states.',
+    eventType: 'deep-gong',
+    eventText: 'Experience live → Deep Gong Immersion',
+    synth: {
+      type: 'gong',
+      fundamental: 80,
+      harmonics: [1, 1.35, 1.72, 2.18, 2.85, 3.5, 4.8, 6.1],
+      harmonicAmps: [1, 0.8, 0.6, 0.5, 0.35, 0.25, 0.15, 0.1],
+      decay: 15,
+      shimmer: 0.08
+    }
+  },
+  {
+    id: 'handpan',
+    name: 'Handpan',
+    icon: '🪘',
+    color: '#2ecc71',
+    origin: 'Switzerland · 2000',
+    desc: 'Melodic steel drum played with hands. Warm, bell-like tones that naturally create harmony.',
+    tags: ['Melodic', 'Heart Space', 'Gentle'],
+    healing: 'The handpan\'s steel resonance creates long natural decay curves — each note blooms, evolves, and dies like a living thing. Multiple notes played together create interference patterns that are deeply soothing to the nervous system.',
+    eventType: 'sound-bath',
+    eventText: 'Experience live → Sound Foundations Workshop',
+    synth: {
+      type: 'handpan',
+      fundamental: 293.66, // D4
+      harmonics: [1, 2, 3, 4.01],
+      harmonicAmps: [1, 0.4, 0.2, 0.08],
+      decay: 5,
+      shimmer: 0.01
+    }
+  },
+  {
+    id: 'flute',
+    name: 'Native Flute',
+    icon: '🪈',
+    color: '#e8a44e',
+    origin: 'Indigenous Americas',
+    desc: 'Breathy, soulful tone that carries the breath of the player directly into the room.',
+    tags: ['Breath', 'Spirit', 'Ancestral'],
+    healing: 'The flute is unique among healing instruments because it carries literal human breath — the prana, the life force — into the room. Its pentatonic scale naturally avoids dissonance, making it impossible to play a "wrong" note. It speaks directly to something ancient in us.',
+    eventType: 'sound-bath',
+    eventText: 'Experience live → Healing Sounds Journey',
+    synth: {
+      type: 'flute',
+      fundamental: 392, // G4
+      harmonics: [1, 2, 3, 4],
+      harmonicAmps: [1, 0.3, 0.15, 0.05],
+      decay: 3,
+      shimmer: 0.04,
+      breathiness: 0.15
+    }
+  },
+  {
+    id: 'chimes',
+    name: 'Wind Chimes',
+    icon: '🎐',
+    color: '#f1c40f',
+    origin: 'East Asia · 3000 BCE',
+    desc: 'Random cascades of bright metallic tones. Nature\'s own generative music.',
+    tags: ['Spaciousness', 'Randomness', 'Nature'],
+    healing: 'Wind chimes are the original generative music — chaotic pendulum patterns creating unpredictable but always harmonious cascades. The randomness prevents habituation while the consonant tuning maintains safety. This is the sound of letting go of control.',
+    eventType: 'sound-bath',
+    eventText: 'Experience live → Community Sound Bath',
+    synth: {
+      type: 'chimes',
+      fundamental: 800,
+      frequencies: [800, 1000, 1200, 1350, 1600, 1900],
+      decay: 4,
+      shimmer: 0.01
+    }
+  },
+  {
+    id: 'drum',
+    name: 'Frame Drum',
+    icon: '🥁',
+    color: '#e74c3c',
+    origin: 'Global · Ancient',
+    desc: 'Deep heartbeat rhythm. The oldest instrument on earth — found in every culture.',
+    tags: ['Grounding', 'Heartbeat', 'Primal'],
+    healing: 'Rhythmic drumming at 4-4.5 Hz directly entrains theta brainwaves — the frequency of deep meditation, dreaming, and visionary states. Research shows 15 minutes of rhythmic drumming shifts immune markers and reduces cortisol. The drum is medicine.',
+    eventType: 'drumming',
+    eventText: 'Experience live → Pulse of Life Drumming Circle',
+    synth: {
+      type: 'drum',
+      fundamental: 80,
+      decay: 1.5,
+      noiseDecay: 0.08
+    }
+  },
+  {
+    id: 'tuning-fork',
+    name: 'Tuning Fork',
+    icon: '✨',
+    color: '#1abc9c',
+    origin: 'Germany · 1711',
+    desc: 'Precise, pure frequency. Used for targeted energy work and biofield tuning.',
+    tags: ['Precision', 'Biofield', 'Targeted'],
+    healing: 'Tuning forks produce the purest tone of any acoustic instrument — nearly a perfect sine wave. When placed near the body, the vibration creates a coherent standing wave that the body\'s own oscillations can entrain to. Used in biofield tuning to find and release stored tension.',
+    eventType: 'sound-bath',
+    eventText: 'Experience live → Sound Foundations Workshop',
+    synth: {
+      type: 'fork',
+      fundamental: 528,
+      decay: 6,
+      beatFreq: 0.5
+    }
+  }
+];
+
+// ============================================
+// AUDIO ENGINE
+// ============================================
+let audioCtx = null;
+let activeNodes = {};
+let analyser = null;
+let masterGain = null;
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.3;
+  masterGain.connect(analyser);
+  analyser.connect(audioCtx.destination);
+}
+
+function playInstrument(inst) {
+  initAudio();
+  const s = inst.synth;
+  const nodes = [];
+  const now = audioCtx.currentTime;
+  const env = audioCtx.createGain();
+  env.gain.setValueAtTime(0, now);
+  env.gain.linearRampToValueAtTime(0.7, now + 0.05);
+  env.gain.exponentialRampToValueAtTime(0.001, now + s.decay);
+  env.connect(masterGain);
+
+  if (s.type === 'bowl' || s.type === 'crystal' || s.type === 'handpan' || s.type === 'fork') {
+    const harmonics = s.harmonics || [1];
+    const amps = s.harmonicAmps || [1];
+    harmonics.forEach((h, i) => {
+      const osc = audioCtx.createOscillator();
+      const hGain = audioCtx.createGain();
+      osc.frequency.value = s.fundamental * h;
+      // Add shimmer (slight frequency wobble)
+      if (s.shimmer) {
+        const lfo = audioCtx.createOscillator();
+        const lfoGain = audioCtx.createGain();
+        lfo.frequency.value = 0.5 + Math.random() * 2;
+        lfoGain.gain.value = s.fundamental * h * s.shimmer;
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        lfo.start(now);
+        lfo.stop(now + s.decay + 1);
+        nodes.push(lfo);
+      }
+      hGain.gain.value = amps[i] || 0.1;
+      osc.connect(hGain);
+      hGain.connect(env);
+      osc.start(now);
+      osc.stop(now + s.decay + 1);
+      nodes.push(osc);
+    });
+    // Beat frequency for tuning fork
+    if (s.beatFreq) {
+      const osc2 = audioCtx.createOscillator();
+      osc2.frequency.value = s.fundamental + s.beatFreq;
+      const g2 = audioCtx.createGain();
+      g2.gain.value = 0.8;
+      osc2.connect(g2);
+      g2.connect(env);
+      osc2.start(now);
+      osc2.stop(now + s.decay + 1);
+      nodes.push(osc2);
+    }
+  }
+
+  if (s.type === 'gong') {
+    s.harmonics.forEach((h, i) => {
+      const osc = audioCtx.createOscillator();
+      const hGain = audioCtx.createGain();
+      osc.frequency.value = s.fundamental * h;
+      // Gong: heavy frequency modulation for chaotic shimmer
+      const lfo = audioCtx.createOscillator();
+      const lfoGain = audioCtx.createGain();
+      lfo.frequency.value = 0.1 + Math.random() * 3;
+      lfoGain.gain.value = s.fundamental * h * s.shimmer * (1 + Math.random());
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+      lfo.start(now);
+      lfo.stop(now + s.decay + 1);
+      hGain.gain.value = s.harmonicAmps[i];
+      osc.connect(hGain);
+      hGain.connect(env);
+      osc.start(now);
+      osc.stop(now + s.decay + 1);
+      nodes.push(osc, lfo);
+    });
+    // Sub-bass rumble
+    const noise = audioCtx.createOscillator();
+    noise.frequency.value = 40;
+    noise.type = 'triangle';
+    const nGain = audioCtx.createGain();
+    nGain.gain.value = 0.4;
+    noise.connect(nGain);
+    nGain.connect(env);
+    noise.start(now);
+    noise.stop(now + s.decay + 1);
+    nodes.push(noise);
+  }
+
+  if (s.type === 'flute') {
+    // Main tone
+    const osc = audioCtx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = s.fundamental;
+    // Vibrato
+    const vib = audioCtx.createOscillator();
+    const vibGain = audioCtx.createGain();
+    vib.frequency.value = 5;
+    vibGain.gain.value = 4;
+    vib.connect(vibGain);
+    vibGain.connect(osc.frequency);
+    vib.start(now);
+    vib.stop(now + s.decay + 1);
+    // Breathiness (filtered noise)
+    const bufferSize = audioCtx.sampleRate * 2;
+    const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+    const noiseSrc = audioCtx.createBufferSource();
+    noiseSrc.buffer = noiseBuffer;
+    const noiseFilter = audioCtx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.value = s.fundamental;
+    noiseFilter.Q.value = 2;
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.value = s.breathiness || 0.1;
+    noiseSrc.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(env);
+    noiseSrc.start(now);
+    noiseSrc.stop(now + s.decay + 1);
+
+    osc.connect(env);
+    osc.start(now);
+    osc.stop(now + s.decay + 1);
+    nodes.push(osc, vib, noiseSrc);
+  }
+
+  if (s.type === 'chimes') {
+    const freqs = s.frequencies;
+    // Random cascade of chime strikes
+    for (let i = 0; i < 8; i++) {
+      const delay = Math.random() * 1.5;
+      const freq = freqs[Math.floor(Math.random() * freqs.length)];
+      const osc = audioCtx.createOscillator();
+      const cEnv = audioCtx.createGain();
+      osc.frequency.value = freq * (0.98 + Math.random() * 0.04);
+      cEnv.gain.setValueAtTime(0, now + delay);
+      cEnv.gain.linearRampToValueAtTime(0.3 + Math.random() * 0.4, now + delay + 0.01);
+      cEnv.gain.exponentialRampToValueAtTime(0.001, now + delay + s.decay);
+      osc.connect(cEnv);
+      cEnv.connect(masterGain);
+      osc.start(now + delay);
+      osc.stop(now + delay + s.decay + 0.5);
+      nodes.push(osc);
+    }
+  }
+
+  if (s.type === 'drum') {
+    // Tone component
+    const osc = audioCtx.createOscillator();
+    osc.frequency.setValueAtTime(s.fundamental * 2, now);
+    osc.frequency.exponentialRampToValueAtTime(s.fundamental, now + 0.1);
+    const dEnv = audioCtx.createGain();
+    dEnv.gain.setValueAtTime(1, now);
+    dEnv.gain.exponentialRampToValueAtTime(0.001, now + s.decay);
+    osc.connect(dEnv);
+    dEnv.connect(masterGain);
+    osc.start(now);
+    osc.stop(now + s.decay + 0.5);
+    // Noise transient
+    const bufferSize = audioCtx.sampleRate * 0.3;
+    const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const out = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) out[i] = Math.random() * 2 - 1;
+    const nSrc = audioCtx.createBufferSource();
+    nSrc.buffer = noiseBuffer;
+    const nEnv = audioCtx.createGain();
+    nEnv.gain.setValueAtTime(0.8, now);
+    nEnv.gain.exponentialRampToValueAtTime(0.001, now + s.noiseDecay);
+    const nFilter = audioCtx.createBiquadFilter();
+    nFilter.type = 'lowpass';
+    nFilter.frequency.value = 400;
+    nSrc.connect(nFilter);
+    nFilter.connect(nEnv);
+    nEnv.connect(masterGain);
+    nSrc.start(now);
+    nSrc.stop(now + 0.3);
+    nodes.push(osc, nSrc);
+  }
+
+  return { nodes, env };
+}
+
+// ============================================
+// UI ENGINE
+// ============================================
+let activeInstruments = new Set();
+let infoMode = false;
+let animFrame = null;
+
+function buildGrid() {
+  const grid = document.getElementById('instrumentGrid');
+  grid.innerHTML = '';
+  instruments.forEach(inst => {
+    const card = document.createElement('div');
+    card.className = 'instrument-card';
+    card.style.setProperty('--inst-color', inst.color);
+    card.id = `card-${inst.id}`;
+    card.innerHTML = `
+      <span class="inst-icon">${inst.icon}</span>
+      <div class="inst-name">${inst.name}</div>
+      <div class="inst-origin">${inst.origin}</div>
+      <div class="inst-desc">${inst.desc}</div>
+      <div class="inst-properties">
+        ${inst.tags.map(t => `<span class="inst-tag">${t}</span>`).join('')}
+      </div>
+      <a class="inst-cta" href="#">${inst.eventText} →</a>
+    `;
+    card.addEventListener('click', (e) => {
+      if (e.target.classList.contains('inst-cta')) return;
+      handleCardClick(inst, card, e);
+    });
+    grid.appendChild(card);
+  });
+}
+
+function handleCardClick(inst, card, e) {
+  if (infoMode) {
+    showInfo(inst);
+    return;
+  }
+
+  // Ripple effect
+  const rect = card.getBoundingClientRect();
+  const ripple = document.createElement('div');
+  ripple.className = 'ripple';
+  ripple.style.left = (e.clientX - rect.left) + 'px';
+  ripple.style.top = (e.clientY - rect.top) + 'px';
+  ripple.style.width = '50px';
+  ripple.style.height = '50px';
+  card.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 1500);
+
+  // Toggle or play
+  if (inst.synth.type === 'drum' || inst.synth.type === 'chimes') {
+    // One-shot instruments
+    card.classList.add('active');
+    playInstrument(inst);
+    setTimeout(() => {
+      card.classList.remove('active');
+      activeInstruments.delete(inst.id);
+      updateDots();
+    }, inst.synth.decay * 1000);
+    activeInstruments.add(inst.id);
+  } else {
+    // Toggle sustaining instruments
+    if (activeInstruments.has(inst.id)) {
+      card.classList.remove('active');
+      activeInstruments.delete(inst.id);
+    } else {
+      card.classList.add('active');
+      activeInstruments.add(inst.id);
+      playInstrument(inst);
+      // Re-trigger on decay
+      scheduleRetrigger(inst);
+    }
+  }
+  updateDots();
+}
+
+function scheduleRetrigger(inst) {
+  const retrigger = () => {
+    if (!activeInstruments.has(inst.id)) return;
+    playInstrument(inst);
+    setTimeout(retrigger, (inst.synth.decay * 0.85) * 1000);
+  };
+  setTimeout(retrigger, (inst.synth.decay * 0.85) * 1000);
+}
+
+function clearAll() {
+  activeInstruments.clear();
+  document.querySelectorAll('.instrument-card').forEach(c => c.classList.remove('active'));
+  updateDots();
+}
+
+function updateDots() {
+  const container = document.getElementById('activeDots');
+  const label = document.getElementById('layerLabel');
+  container.innerHTML = '';
+  if (activeInstruments.size === 0) {
+    label.textContent = '';
+    return;
+  }
+  label.textContent = 'NOW PLAYING';
+  instruments.forEach(inst => {
+    if (activeInstruments.has(inst.id)) {
+      const dot = document.createElement('div');
+      dot.className = 'active-dot on';
+      dot.style.backgroundColor = inst.color;
+      dot.style.color = inst.color;
+      dot.title = inst.name;
+      container.appendChild(dot);
+    }
+  });
+}
+
+function toggleInfoMode() {
+  infoMode = !infoMode;
+  const btn = document.getElementById('infoToggle');
+  btn.style.borderColor = infoMode ? '#D4951A' : '#333';
+  btn.style.color = infoMode ? '#D4951A' : '#ccc';
+}
+
+function showInfo(inst) {
+  const panel = document.getElementById('infoPanel');
+  document.getElementById('infoTitle').textContent = `${inst.icon} ${inst.name}`;
+  document.getElementById('infoBody').innerHTML = `
+    <p>${inst.desc}</p>
+    <div class="info-healing">
+      <div class="info-healing-title">Healing Properties</div>
+      <p>${inst.healing}</p>
+    </div>
+    <a class="info-link" href="https://materiaaurelia.github.io/events-hub/">${inst.eventText} →</a>
+  `;
+  panel.classList.add('open');
+}
+
+function closeInfo() {
+  document.getElementById('infoPanel').classList.remove('open');
+}
+
+// ============================================
+// VISUALIZER
+// ============================================
+function initVisualizer() {
+  const canvas = document.getElementById('visualizer');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = canvas.offsetWidth * 2;
+    canvas.height = canvas.offsetHeight * 2;
+    ctx.scale(2, 2);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const bufferLength = analyser ? analyser.frequencyBinCount : 1024;
+  const dataArray = new Uint8Array(bufferLength);
+
+  function draw() {
+    animFrame = requestAnimationFrame(draw);
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    ctx.clearRect(0, 0, w, h);
+
+    if (!analyser) {
+      // Idle state — gentle wave
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(212, 149, 26, 0.15)';
+      ctx.lineWidth = 1;
+      const t = Date.now() / 2000;
+      for (let x = 0; x < w; x++) {
+        const y = h / 2 + Math.sin(x / 80 + t) * 15 + Math.sin(x / 40 + t * 1.5) * 8;
+        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      return;
+    }
+
+    analyser.getByteTimeDomainData(dataArray);
+
+    // Draw waveform
+    ctx.beginPath();
+    const gradient = ctx.createLinearGradient(0, 0, w, 0);
+    gradient.addColorStop(0, 'rgba(212, 149, 26, 0.6)');
+    gradient.addColorStop(0.5, 'rgba(155, 89, 182, 0.6)');
+    gradient.addColorStop(1, 'rgba(136, 200, 255, 0.6)');
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = 2;
+
+    const sliceWidth = w / bufferLength;
+    let x = 0;
+    for (let i = 0; i < bufferLength; i++) {
+      const v = dataArray[i] / 128.0;
+      const y = v * h / 2;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      x += sliceWidth;
+    }
+    ctx.lineTo(w, h / 2);
+    ctx.stroke();
+
+    // Glow effect
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = 'rgba(212, 149, 26, 0.3)';
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  draw();
+}
+
+// ============================================
+// LEAD CAPTURE
+// ============================================
+function submitLead() {
+  const name = document.getElementById('leadName').value.trim();
+  const email = document.getElementById('leadEmail').value.trim();
+  if (!email || !email.includes('@')) {
+    document.getElementById('leadEmail').style.borderColor = '#e74c3c';
+    return;
+  }
+  // Submit to Robly via API
+  const apiId = 'f97cd2fc6d536ed65fa7af62db47ca54';
+  const apiKey = 'd7c6620c4e658afc90212d';
+  fetch(`https://api.robly.com/api/v1/sign_up/generate?api_id=${apiId}&api_key=${apiKey}&email=${encodeURIComponent(email)}&fname=${encodeURIComponent(name)}`, {
+    method: 'POST',
+    mode: 'no-cors'
+  }).catch(() => {});
+
+  document.getElementById('leadForm').style.display = 'none';
+  document.getElementById('leadSuccess').style.display = 'block';
+}
+
+// ============================================
+// INIT
+// ============================================
+buildGrid();
+initVisualizer();
+</script>
+
+</body>
+</html>

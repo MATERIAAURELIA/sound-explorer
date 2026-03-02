@@ -1,0 +1,119 @@
+{
+  "title": "Sound Explorer",
+  "subtitle": "Discover the instruments of a sound bath",
+  "description": "Tap, layer, and feel the sounds that create deep healing experiences",
+  "brandName": "Earth Harmony",
+  "brandTagline": "Sound & Wellness",
+  "backgroundColor": "#0a0a0f",
+  "accentColor": "#d4a24e",
+  "instruments": [
+    {
+      "id": "singing-bowl",
+      "name": "Singing Bowl",
+      "icon": "🔔",
+      "sample": "samples/singing-bowl.mp3",
+      "color": "#d4a24e",
+      "loop": true,
+      "description": "A metal bowl that sings when struck or rubbed. Its rich overtones create waves of harmonic resonance that slow brainwaves and calm the nervous system.",
+      "origin": "Nepal & Tibet, 2000+ years",
+      "healing": "Deep relaxation, stress relief, chakra balancing"
+    },
+    {
+      "id": "tibetan-bowl",
+      "name": "Tibetan Bowl",
+      "icon": "🕉️",
+      "sample": "samples/tibetan-bowl.mp3",
+      "color": "#c4956e",
+      "loop": true,
+      "description": "Hand-hammered from seven metals, each Tibetan bowl carries a unique voice. The sustained vibration penetrates deeply into the body's tissues.",
+      "origin": "Himalayan region, ancient tradition",
+      "healing": "Meditation, pain relief, cellular vibration"
+    },
+    {
+      "id": "gong",
+      "name": "Gong",
+      "icon": "⭕",
+      "sample": "samples/gong.mp3",
+      "color": "#8b6914",
+      "loop": false,
+      "description": "The gong produces a wash of complex, evolving harmonics — a symphony in a single strike. Its shimmering overtones can shift consciousness rapidly.",
+      "origin": "Southeast Asia, 4000+ years",
+      "healing": "Emotional release, theta state induction, full-body immersion"
+    },
+    {
+      "id": "handpan",
+      "name": "Handpan",
+      "icon": "🪘",
+      "sample": "samples/handpan.mp3",
+      "color": "#7a9e7e",
+      "loop": false,
+      "description": "A steel instrument played with the hands, creating ethereal melodic tones. Each note blooms with natural harmonics that dance and decay.",
+      "origin": "Switzerland, 2000 (PANArt Hang)",
+      "healing": "Heart opening, creative flow, presence"
+    },
+    {
+      "id": "flute",
+      "name": "Native Flute",
+      "icon": "🎵",
+      "sample": "samples/flute.mp3",
+      "color": "#6b8e8e",
+      "loop": false,
+      "description": "The breath becomes music. Each note carries the warmth of human expression — no two phrases are ever the same.",
+      "origin": "Indigenous traditions worldwide",
+      "healing": "Breath awareness, emotional expression, grounding"
+    },
+    {
+      "id": "chimes",
+      "name": "Wind Chimes",
+      "icon": "🎐",
+      "sample": "samples/chimes.mp3",
+      "color": "#9bb5d0",
+      "loop": false,
+      "description": "Delicate metal tubes that jingle and shimmer unpredictably — yet soothingly. Nature's own random music, governed by gravity and breeze.",
+      "origin": "Ancient China & Southeast Asia",
+      "healing": "Space clearing, gentle awakening, energy movement"
+    },
+    {
+      "id": "tongue-drum",
+      "name": "Tongue Drum",
+      "icon": "🥁",
+      "sample": "samples/tongue-drum.mp3",
+      "color": "#a67c52",
+      "loop": false,
+      "description": "Steel tongues tuned to a pentatonic scale — every combination sounds beautiful. An instrument anyone can play and feel successful with.",
+      "origin": "Modern, inspired by slit drums",
+      "healing": "Playfulness, accessibility, rhythmic grounding"
+    },
+    {
+      "id": "rainstick",
+      "name": "Rainstick",
+      "icon": "🌧️",
+      "sample": "samples/rainstick.mp3",
+      "color": "#5a7d8c",
+      "loop": false,
+      "description": "Dried cactus filled with pebbles that cascade like falling rain. The sound instantly signals the body to soften and release.",
+      "origin": "South America, indigenous tradition",
+      "healing": "Transition tool, calming, nature connection"
+    }
+  ],
+  "events": [
+    {
+      "name": "Back to Basics",
+      "instruments": ["singing-bowl", "tibetan-bowl", "tongue-drum", "rainstick"],
+      "description": "A gentle, accessible sound bath perfect for beginners. Core instruments, pure intention.",
+      "link": ""
+    },
+    {
+      "name": "Deep Symphonic Sound Bath",
+      "instruments": ["singing-bowl", "tibetan-bowl", "gong", "handpan", "flute", "chimes"],
+      "description": "The full orchestra. Layers of sound building into a complete immersive experience.",
+      "link": ""
+    },
+    {
+      "name": "Crystal Singing Bowls",
+      "instruments": ["singing-bowl", "tibetan-bowl"],
+      "description": "Pure crystal tones tuned to specific frequencies. Precision healing through sustained resonance.",
+      "link": ""
+    }
+  ]
+}
