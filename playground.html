@@ -269,7 +269,8 @@ const presets = {
   'Handpan': { fundamental: 294, material: 0.35, damping: 5, chaos: 0.015, density: 5, inharmonicity: 0.15, brightness: 0.4, attack: 0.015, subBass: 0.15, beatFreq: 0 },
   'Drone Pad': { fundamental: 60, material: 0.6, damping: 25, chaos: 0.08, density: 8, inharmonicity: 0.3, brightness: 0.35, attack: 0.4, subBass: 0.7, beatFreq: 2 },
   'Tuning Fork': { fundamental: 528, material: 0.9, damping: 8, chaos: 0.002, density: 2, inharmonicity: 0, brightness: 0.2, attack: 0.01, subBass: 0, beatFreq: 0.5 },
-  'Flumie Overtones': { fundamental: 100, material: 0.25, damping: 20, chaos: 0.1, density: 10, inharmonicity: 0.6, brightness: 0.55, attack: 0.08, subBass: 0.6, beatFreq: 1.2 }
+  'Flumie Overtones': { fundamental: 100, material: 0.25, damping: 20, chaos: 0.1, density: 10, inharmonicity: 0.6, brightness: 0.55, attack: 0.08, subBass: 0.6, beatFreq: 1.2 },
+  'Ocean Drum': { fundamental: 55, material: 0.15, damping: 22, chaos: 0.18, density: 12, inharmonicity: 0.8, brightness: 0.7, attack: 0.5, subBass: 0.9, beatFreq: 0.3 }
 };
 
 // ============================================
@@ -408,6 +409,46 @@ function strike() {
     sub.start(now);
     sub.stop(now + p.damping + 1);
     currentNodes.push(sub);
+  }
+
+  // Ocean/bead noise layer (for slow attack, high chaos sounds)
+  if (p.attack >= 0.1 && p.chaos > 0.05) {
+    const bufSize = audioCtx.sampleRate * p.damping;
+    const noiseBuf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const data = noiseBuf.getChannelData(0);
+    // Beads rolling — amplitude swells like ocean waves
+    for (let i = 0; i < bufSize; i++) {
+      const t = i / audioCtx.sampleRate;
+      const waveSwell = Math.sin(t * Math.PI * 0.3) * 0.5 + 0.5; // slow swell
+      const microSwell = Math.sin(t * Math.PI * 2.5) * 0.2 + 0.8; // faster undulation
+      const beadDensity = waveSwell * microSwell;
+      // Random beads with density modulation
+      const bead = (Math.random() * 2 - 1) * beadDensity;
+      // Occasional louder impacts
+      const impact = Math.random() < 0.002 ? (Math.random() * 2 - 1) * 2 : 0;
+      data[i] = (bead * 0.3 + impact * 0.15);
+    }
+    const nSrc = audioCtx.createBufferSource();
+    nSrc.buffer = noiseBuf;
+    // Body resonance filter
+    const bodyFilter = audioCtx.createBiquadFilter();
+    bodyFilter.type = 'bandpass';
+    bodyFilter.frequency.value = p.fundamental * 2;
+    bodyFilter.Q.value = 0.8;
+    // Second filter for shimmer
+    const shimFilter = audioCtx.createBiquadFilter();
+    shimFilter.type = 'highshelf';
+    shimFilter.frequency.value = 2000;
+    shimFilter.gain.value = p.brightness * 8 - 4;
+    const nGain = audioCtx.createGain();
+    nGain.gain.value = p.chaos * 4;
+    nSrc.connect(bodyFilter);
+    bodyFilter.connect(shimFilter);
+    shimFilter.connect(nGain);
+    nGain.connect(env);
+    nSrc.start(now);
+    nSrc.stop(now + p.damping + 1);
+    currentNodes.push(nSrc);
   }
 
   // Noise transient (strike)
