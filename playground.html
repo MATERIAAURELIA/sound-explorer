@@ -261,16 +261,18 @@ const params = {
 // ============================================
 // PRESETS
 // ============================================
+let currentEngine = null;
+
 const presets = {
-  'Tibetan Bowl': { fundamental: 256, material: 0.3, damping: 10, chaos: 0.025, density: 5, inharmonicity: 0.4, brightness: 0.5, attack: 0.02, subBass: 0.2, beatFreq: 1.5 },
-  'Deep Gong': { fundamental: 80, material: 0.2, damping: 18, chaos: 0.12, density: 10, inharmonicity: 0.7, brightness: 0.6, attack: 0.05, subBass: 0.8, beatFreq: 0 },
-  'Crystal Bowl': { fundamental: 432, material: 0.8, damping: 14, chaos: 0.005, density: 3, inharmonicity: 0.05, brightness: 0.3, attack: 0.01, subBass: 0.1, beatFreq: 0.5 },
-  'Wind Chime': { fundamental: 600, material: 0.5, damping: 4, chaos: 0.02, density: 4, inharmonicity: 0.5, brightness: 0.9, attack: 0.005, subBass: 0, beatFreq: 0 },
-  'Handpan': { fundamental: 294, material: 0.35, damping: 5, chaos: 0.015, density: 5, inharmonicity: 0.15, brightness: 0.4, attack: 0.015, subBass: 0.15, beatFreq: 0 },
-  'Drone Pad': { fundamental: 60, material: 0.6, damping: 25, chaos: 0.08, density: 8, inharmonicity: 0.3, brightness: 0.35, attack: 0.4, subBass: 0.7, beatFreq: 2 },
-  'Tuning Fork': { fundamental: 528, material: 0.9, damping: 8, chaos: 0.002, density: 2, inharmonicity: 0, brightness: 0.2, attack: 0.01, subBass: 0, beatFreq: 0.5 },
-  'Flumie Overtones': { fundamental: 100, material: 0.25, damping: 20, chaos: 0.1, density: 10, inharmonicity: 0.6, brightness: 0.55, attack: 0.08, subBass: 0.6, beatFreq: 1.2 },
-  'Ocean Drum': { fundamental: 55, material: 0.15, damping: 22, chaos: 0.18, density: 12, inharmonicity: 0.8, brightness: 0.7, attack: 0.5, subBass: 0.9, beatFreq: 0.3 }
+  'Tibetan Bowl':    { engine: 'bowl',    fundamental: 256, material: 0.3, damping: 10, chaos: 0.02, density: 5, inharmonicity: 0.4, brightness: 0.5, attack: 0.02, subBass: 0.2, beatFreq: 1.5 },
+  'Crystal Bowl':    { engine: 'crystal', fundamental: 432, material: 0.8, damping: 14, chaos: 0.005, density: 3, inharmonicity: 0.05, brightness: 0.3, attack: 0.01, subBass: 0.1, beatFreq: 0.5 },
+  'Deep Gong':       { engine: 'gong',    fundamental: 80, material: 0.2, damping: 18, chaos: 0.08, density: 10, inharmonicity: 0.7, brightness: 0.6, attack: 0.05, subBass: 0.8, beatFreq: 0 },
+  'Handpan':         { engine: 'handpan', fundamental: 294, material: 0.35, damping: 5, chaos: 0.01, density: 5, inharmonicity: 0.15, brightness: 0.4, attack: 0.015, subBass: 0.15, beatFreq: 0 },
+  'Native Flute':    { engine: 'flute',   fundamental: 392, material: 0.7, damping: 3, chaos: 0.04, density: 4, inharmonicity: 0.1, brightness: 0.5, attack: 0.03, subBass: 0, beatFreq: 0 },
+  'Wind Chimes':     { engine: 'chimes',  fundamental: 800, material: 0.5, damping: 4, chaos: 0.01, density: 6, inharmonicity: 0.5, brightness: 0.9, attack: 0.005, subBass: 0, beatFreq: 0 },
+  'Frame Drum':      { engine: 'drum',    fundamental: 80, material: 0.1, damping: 1.5, chaos: 0, density: 3, inharmonicity: 0.2, brightness: 0.3, attack: 0.005, subBass: 0.5, beatFreq: 0 },
+  'Ocean Drum':      { engine: 'ocean',   fundamental: 55, material: 0.15, damping: 20, chaos: 0.15, density: 4, inharmonicity: 0.6, brightness: 0.5, attack: 0.5, subBass: 0.9, beatFreq: 0 },
+  'Flumie Overtones':{ engine: 'gong',    fundamental: 100, material: 0.25, damping: 20, chaos: 0.1, density: 10, inharmonicity: 0.6, brightness: 0.55, attack: 0.08, subBass: 0.6, beatFreq: 1.2 }
 };
 
 // ============================================
@@ -316,18 +318,233 @@ function getHarmonicAmps(count, brightness, material) {
   return amps;
 }
 
+// Dedicated synthesis engines — same as Explorer
+const engines = {
+  bowl(p, env, now) {
+    const harmonics = [1, 2.71, 4.95, 7.57];
+    const amps = [1, 0.6, 0.3, 0.15];
+    harmonics.forEach((h, i) => {
+      const osc = audioCtx.createOscillator();
+      const hGain = audioCtx.createGain();
+      osc.frequency.value = p.fundamental * h;
+      const lfo = audioCtx.createOscillator();
+      const lfoGain = audioCtx.createGain();
+      lfo.frequency.value = 0.5 + Math.random() * 2;
+      lfoGain.gain.value = p.fundamental * h * p.chaos;
+      lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+      lfo.start(now); lfo.stop(now + p.damping + 1);
+      hGain.gain.value = amps[i] * p.brightness;
+      osc.connect(hGain); hGain.connect(env);
+      osc.start(now); osc.stop(now + p.damping + 1);
+      currentNodes.push(osc, lfo);
+    });
+    if (p.beatFreq > 0) {
+      const osc2 = audioCtx.createOscillator();
+      osc2.frequency.value = p.fundamental + p.beatFreq;
+      const g = audioCtx.createGain(); g.gain.value = 0.5;
+      osc2.connect(g); g.connect(env);
+      osc2.start(now); osc2.stop(now + p.damping + 1);
+      currentNodes.push(osc2);
+    }
+    return harmonics.map((h,i) => ({ ratio: h, amp: amps[i] }));
+  },
+
+  crystal(p, env, now) {
+    const harmonics = [1, 2, 3];
+    const amps = [1, 0.08, 0.03];
+    harmonics.forEach((h, i) => {
+      const osc = audioCtx.createOscillator();
+      osc.frequency.value = p.fundamental * h;
+      const lfo = audioCtx.createOscillator();
+      const lfoGain = audioCtx.createGain();
+      lfo.frequency.value = 0.3 + Math.random();
+      lfoGain.gain.value = p.fundamental * h * 0.005;
+      lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+      lfo.start(now); lfo.stop(now + p.damping + 1);
+      const hGain = audioCtx.createGain();
+      hGain.gain.value = amps[i];
+      osc.connect(hGain); hGain.connect(env);
+      osc.start(now); osc.stop(now + p.damping + 1);
+      currentNodes.push(osc, lfo);
+    });
+    return harmonics.map((h,i) => ({ ratio: h, amp: amps[i] }));
+  },
+
+  gong(p, env, now) {
+    const harmonics = [1, 1.35, 1.72, 2.18, 2.85, 3.5, 4.8, 6.1];
+    const amps = [1, 0.8, 0.6, 0.5, 0.35, 0.25, 0.15, 0.1];
+    harmonics.forEach((h, i) => {
+      const osc = audioCtx.createOscillator();
+      const hGain = audioCtx.createGain();
+      osc.frequency.value = p.fundamental * h;
+      const lfo = audioCtx.createOscillator();
+      const lfoGain = audioCtx.createGain();
+      lfo.frequency.value = 0.1 + Math.random() * 3;
+      lfoGain.gain.value = p.fundamental * h * p.chaos * (1 + Math.random());
+      lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+      lfo.start(now); lfo.stop(now + p.damping + 1);
+      hGain.gain.value = amps[i];
+      osc.connect(hGain); hGain.connect(env);
+      osc.start(now); osc.stop(now + p.damping + 1);
+      currentNodes.push(osc, lfo);
+    });
+    // Sub-bass rumble
+    const sub = audioCtx.createOscillator();
+    sub.frequency.value = p.fundamental / 2; sub.type = 'triangle';
+    const sG = audioCtx.createGain(); sG.gain.value = p.subBass * 0.6;
+    sub.connect(sG); sG.connect(env);
+    sub.start(now); sub.stop(now + p.damping + 1);
+    currentNodes.push(sub);
+    return harmonics.map((h,i) => ({ ratio: h, amp: amps[i] }));
+  },
+
+  handpan(p, env, now) {
+    const harmonics = [1, 2, 3, 4.01];
+    const amps = [1, 0.4, 0.2, 0.08];
+    harmonics.forEach((h, i) => {
+      const osc = audioCtx.createOscillator();
+      osc.frequency.value = p.fundamental * h;
+      const lfo = audioCtx.createOscillator();
+      const lfoGain = audioCtx.createGain();
+      lfo.frequency.value = 0.5 + Math.random() * 2;
+      lfoGain.gain.value = p.fundamental * h * 0.01;
+      lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+      lfo.start(now); lfo.stop(now + p.damping + 1);
+      const hGain = audioCtx.createGain();
+      hGain.gain.value = amps[i];
+      osc.connect(hGain); hGain.connect(env);
+      osc.start(now); osc.stop(now + p.damping + 1);
+      currentNodes.push(osc, lfo);
+    });
+    return harmonics.map((h,i) => ({ ratio: h, amp: amps[i] }));
+  },
+
+  flute(p, env, now) {
+    const osc = audioCtx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = p.fundamental;
+    const vib = audioCtx.createOscillator();
+    const vibG = audioCtx.createGain();
+    vib.frequency.value = 5; vibG.gain.value = 4;
+    vib.connect(vibG); vibG.connect(osc.frequency);
+    vib.start(now); vib.stop(now + p.damping + 1);
+    // Breath noise
+    const bufSize = audioCtx.sampleRate * 2;
+    const nBuf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const nd = nBuf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) nd[i] = Math.random() * 2 - 1;
+    const nSrc = audioCtx.createBufferSource(); nSrc.buffer = nBuf;
+    const nFilt = audioCtx.createBiquadFilter();
+    nFilt.type = 'bandpass'; nFilt.frequency.value = p.fundamental; nFilt.Q.value = 2;
+    const nG = audioCtx.createGain(); nG.gain.value = 0.15;
+    nSrc.connect(nFilt); nFilt.connect(nG); nG.connect(env);
+    nSrc.start(now); nSrc.stop(now + p.damping + 1);
+    osc.connect(env);
+    osc.start(now); osc.stop(now + p.damping + 1);
+    currentNodes.push(osc, vib, nSrc);
+    return [1,2,3].map((h,i) => ({ ratio: h, amp: [1,0.3,0.15][i] }));
+  },
+
+  chimes(p, env, now) {
+    const freqs = [800, 1000, 1200, 1350, 1600, 1900];
+    for (let i = 0; i < 10; i++) {
+      const delay = Math.random() * 2;
+      const freq = freqs[Math.floor(Math.random() * freqs.length)];
+      const osc = audioCtx.createOscillator();
+      const cEnv = audioCtx.createGain();
+      osc.frequency.value = freq * (0.98 + Math.random() * 0.04);
+      cEnv.gain.setValueAtTime(0, now + delay);
+      cEnv.gain.linearRampToValueAtTime(0.3 + Math.random() * 0.4, now + delay + 0.01);
+      cEnv.gain.exponentialRampToValueAtTime(0.001, now + delay + 4);
+      osc.connect(cEnv); cEnv.connect(masterGain);
+      osc.start(now + delay); osc.stop(now + delay + 5);
+      currentNodes.push(osc);
+    }
+    return freqs.slice(0,6).map((f,i) => ({ ratio: f/freqs[0], amp: 0.7 - i*0.1 }));
+  },
+
+  drum(p, env, now) {
+    const osc = audioCtx.createOscillator();
+    osc.frequency.setValueAtTime(p.fundamental * 2, now);
+    osc.frequency.exponentialRampToValueAtTime(p.fundamental, now + 0.1);
+    const dEnv = audioCtx.createGain();
+    dEnv.gain.setValueAtTime(1, now);
+    dEnv.gain.exponentialRampToValueAtTime(0.001, now + p.damping);
+    osc.connect(dEnv); dEnv.connect(masterGain);
+    osc.start(now); osc.stop(now + p.damping + 0.5);
+    // Noise transient
+    const bufSize = audioCtx.sampleRate * 0.3;
+    const nBuf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const nd = nBuf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) nd[i] = Math.random() * 2 - 1;
+    const nSrc = audioCtx.createBufferSource(); nSrc.buffer = nBuf;
+    const nEnv = audioCtx.createGain();
+    nEnv.gain.setValueAtTime(0.8, now);
+    nEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    const nF = audioCtx.createBiquadFilter(); nF.type = 'lowpass'; nF.frequency.value = 400;
+    nSrc.connect(nF); nF.connect(nEnv); nEnv.connect(masterGain);
+    nSrc.start(now); nSrc.stop(now + 0.3);
+    currentNodes.push(osc, nSrc);
+    return [1,2,3].map((h,i) => ({ ratio: h, amp: [1,0.3,0.1][i] }));
+  },
+
+  ocean(p, env, now) {
+    // Low drone
+    const harmonics = [1, 1.5, 2.1, 3.2];
+    const amps = [1, 0.5, 0.3, 0.15];
+    harmonics.forEach((h, i) => {
+      const osc = audioCtx.createOscillator();
+      osc.frequency.value = p.fundamental * h;
+      osc.type = 'sine';
+      const lfo = audioCtx.createOscillator();
+      const lfoG = audioCtx.createGain();
+      lfo.frequency.value = 0.05 + Math.random() * 0.3;
+      lfoG.gain.value = p.fundamental * h * 0.15;
+      lfo.connect(lfoG); lfoG.connect(osc.frequency);
+      lfo.start(now); lfo.stop(now + p.damping + 1);
+      const hG = audioCtx.createGain(); hG.gain.value = amps[i];
+      osc.connect(hG); hG.connect(env);
+      osc.start(now); osc.stop(now + p.damping + 1);
+      currentNodes.push(osc, lfo);
+    });
+    // Bead noise
+    const bufSize = audioCtx.sampleRate * Math.min(p.damping, 20);
+    const nBuf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const data = nBuf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+      const t = i / audioCtx.sampleRate;
+      const swell = Math.sin(t * Math.PI * 0.25) * 0.5 + 0.5;
+      const micro = Math.sin(t * Math.PI * 2) * 0.2 + 0.8;
+      const bead = (Math.random() * 2 - 1) * swell * micro;
+      const impact = Math.random() < 0.003 ? (Math.random() * 2 - 1) * 2 : 0;
+      data[i] = bead * 0.35 + impact * 0.15;
+    }
+    const nSrc = audioCtx.createBufferSource(); nSrc.buffer = nBuf;
+    const bpf = audioCtx.createBiquadFilter();
+    bpf.type = 'bandpass'; bpf.frequency.value = p.fundamental * 3; bpf.Q.value = 0.6;
+    const nG = audioCtx.createGain(); nG.gain.value = 0.7;
+    nSrc.connect(bpf); bpf.connect(nG); nG.connect(env);
+    nSrc.start(now); nSrc.stop(now + p.damping + 1);
+    currentNodes.push(nSrc);
+    // Sub
+    const sub = audioCtx.createOscillator();
+    sub.frequency.value = p.fundamental / 2; sub.type = 'sine';
+    const sG = audioCtx.createGain(); sG.gain.value = 0.5;
+    sub.connect(sG); sG.connect(env);
+    sub.start(now); sub.stop(now + p.damping + 1);
+    currentNodes.push(sub);
+    return harmonics.map((h,i) => ({ ratio: h, amp: amps[i] }));
+  }
+};
+
 function strike() {
   initAudio();
-  // Clean up old nodes
   currentNodes.forEach(n => { try { n.stop(); } catch(e){} });
   currentNodes = [];
 
   const p = {};
   Object.keys(params).forEach(k => p[k] = params[k].value);
   const now = audioCtx.currentTime;
-
-  const harmonicRatios = generateHarmonicRatios(p.density, p.inharmonicity);
-  const harmonicAmps = getHarmonicAmps(p.density, p.brightness, p.material);
 
   // Master envelope
   const env = audioCtx.createGain();
@@ -336,146 +553,43 @@ function strike() {
   env.gain.exponentialRampToValueAtTime(0.001, now + p.damping);
   env.connect(masterGain);
 
-  // Harmonics
-  harmonicRatios.forEach((ratio, i) => {
-    const freq = p.fundamental * ratio;
-    if (freq > 20000) return;
-
-    const osc = audioCtx.createOscillator();
-    const hGain = audioCtx.createGain();
-
-    // Material affects waveform
-    if (p.material < 0.3) osc.type = 'sawtooth'; // metallic
-    else if (p.material < 0.7) osc.type = 'triangle'; // crystal-like
-    else osc.type = 'sine'; // pure/wood
-
-    osc.frequency.value = freq;
-    hGain.gain.value = harmonicAmps[i] || 0.1;
-
-    // Chaos — frequency modulation
-    if (p.chaos > 0) {
-      const lfo = audioCtx.createOscillator();
-      const lfoGain = audioCtx.createGain();
-      lfo.frequency.value = 0.2 + Math.random() * 3;
-      lfoGain.gain.value = freq * p.chaos * (1 + Math.random());
-      lfo.connect(lfoGain);
-      lfoGain.connect(osc.frequency);
-      lfo.start(now);
-      lfo.stop(now + p.damping + 1);
-      currentNodes.push(lfo);
-    }
-
-    // Individual harmonic decay (higher = faster)
-    const hEnv = audioCtx.createGain();
-    const hDecay = p.damping / (1 + (i * 0.15 * (1 - p.material * 0.5)));
-    hEnv.gain.setValueAtTime(1, now);
-    hEnv.gain.exponentialRampToValueAtTime(0.001, now + hDecay);
-
-    osc.connect(hGain);
-    hGain.connect(hEnv);
-    hEnv.connect(env);
-    osc.start(now);
-    osc.stop(now + p.damping + 1);
-    currentNodes.push(osc);
-  });
-
-  // Beat frequency (second slightly detuned fundamental)
-  if (p.beatFreq > 0) {
-    const osc2 = audioCtx.createOscillator();
-    osc2.type = 'sine';
-    osc2.frequency.value = p.fundamental + p.beatFreq;
-    const g2 = audioCtx.createGain();
-    g2.gain.value = 0.5;
-    osc2.connect(g2);
-    g2.connect(env);
-    osc2.start(now);
-    osc2.stop(now + p.damping + 1);
-    currentNodes.push(osc2);
-  }
-
-  // Sub bass
-  if (p.subBass > 0) {
-    const sub = audioCtx.createOscillator();
-    sub.type = 'sine';
-    sub.frequency.value = p.fundamental / 2;
-    const subGain = audioCtx.createGain();
-    subGain.gain.value = p.subBass * 0.6;
-    const subEnv = audioCtx.createGain();
-    subEnv.gain.setValueAtTime(1, now);
-    subEnv.gain.exponentialRampToValueAtTime(0.001, now + p.damping * 0.8);
-    sub.connect(subGain);
-    subGain.connect(subEnv);
-    subEnv.connect(env);
-    sub.start(now);
-    sub.stop(now + p.damping + 1);
-    currentNodes.push(sub);
-  }
-
-  // Ocean/bead noise layer (for slow attack, high chaos sounds)
-  if (p.attack >= 0.1 && p.chaos > 0.05) {
-    const bufSize = audioCtx.sampleRate * p.damping;
-    const noiseBuf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-    const data = noiseBuf.getChannelData(0);
-    // Beads rolling — amplitude swells like ocean waves
-    for (let i = 0; i < bufSize; i++) {
-      const t = i / audioCtx.sampleRate;
-      const waveSwell = Math.sin(t * Math.PI * 0.3) * 0.5 + 0.5; // slow swell
-      const microSwell = Math.sin(t * Math.PI * 2.5) * 0.2 + 0.8; // faster undulation
-      const beadDensity = waveSwell * microSwell;
-      // Random beads with density modulation
-      const bead = (Math.random() * 2 - 1) * beadDensity;
-      // Occasional louder impacts
-      const impact = Math.random() < 0.002 ? (Math.random() * 2 - 1) * 2 : 0;
-      data[i] = (bead * 0.3 + impact * 0.15);
-    }
-    const nSrc = audioCtx.createBufferSource();
-    nSrc.buffer = noiseBuf;
-    // Body resonance filter
-    const bodyFilter = audioCtx.createBiquadFilter();
-    bodyFilter.type = 'bandpass';
-    bodyFilter.frequency.value = p.fundamental * 2;
-    bodyFilter.Q.value = 0.8;
-    // Second filter for shimmer
-    const shimFilter = audioCtx.createBiquadFilter();
-    shimFilter.type = 'highshelf';
-    shimFilter.frequency.value = 2000;
-    shimFilter.gain.value = p.brightness * 8 - 4;
-    const nGain = audioCtx.createGain();
-    nGain.gain.value = p.chaos * 4;
-    nSrc.connect(bodyFilter);
-    bodyFilter.connect(shimFilter);
-    shimFilter.connect(nGain);
-    nGain.connect(env);
-    nSrc.start(now);
-    nSrc.stop(now + p.damping + 1);
-    currentNodes.push(nSrc);
-  }
-
-  // Noise transient (strike)
-  if (p.attack < 0.1) {
-    const bufSize = audioCtx.sampleRate * 0.1;
-    const noiseBuf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-    const data = noiseBuf.getChannelData(0);
-    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.3;
-    const nSrc = audioCtx.createBufferSource();
-    nSrc.buffer = noiseBuf;
-    const nFilter = audioCtx.createBiquadFilter();
-    nFilter.type = 'bandpass';
-    nFilter.frequency.value = p.fundamental * 3;
-    nFilter.Q.value = 1;
-    const nEnv = audioCtx.createGain();
-    nEnv.gain.setValueAtTime(0.4, now);
-    nEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-    nSrc.connect(nFilter);
-    nFilter.connect(nEnv);
-    nEnv.connect(masterGain);
-    nSrc.start(now);
-    nSrc.stop(now + 0.15);
-    currentNodes.push(nSrc);
+  // Use dedicated engine if preset selected, otherwise generic
+  let harmonicData = null;
+  if (currentEngine && engines[currentEngine]) {
+    harmonicData = engines[currentEngine](p, env, now);
+  } else {
+    // Generic fallback
+    const harmonicRatios = generateHarmonicRatios(p.density, p.inharmonicity);
+    const harmonicAmps = getHarmonicAmps(p.density, p.brightness, p.material);
+    harmonicRatios.forEach((ratio, i) => {
+      const freq = p.fundamental * ratio;
+      if (freq > 20000) return;
+      const osc = audioCtx.createOscillator();
+      const hGain = audioCtx.createGain();
+      osc.frequency.value = freq;
+      hGain.gain.value = harmonicAmps[i] || 0.1;
+      if (p.chaos > 0) {
+        const lfo = audioCtx.createOscillator();
+        const lfoGain = audioCtx.createGain();
+        lfo.frequency.value = 0.2 + Math.random() * 3;
+        lfoGain.gain.value = freq * p.chaos * (1 + Math.random());
+        lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+        lfo.start(now); lfo.stop(now + p.damping + 1);
+        currentNodes.push(lfo);
+      }
+      osc.connect(hGain); hGain.connect(env);
+      osc.start(now); osc.stop(now + p.damping + 1);
+      currentNodes.push(osc);
+    });
+    harmonicData = harmonicRatios.map((r,i) => ({ ratio: r, amp: harmonicAmps[i] }));
   }
 
   // Update harmonic display
-  updateHarmonicBars(harmonicRatios, harmonicAmps);
+  if (harmonicData) {
+    updateHarmonicBars(
+      harmonicData.map(h => h.ratio),
+      harmonicData.map(h => h.amp)
+    );
 
   isPlaying = true;
   document.getElementById('playBtn').classList.add('playing');
@@ -530,9 +644,10 @@ function buildPresets() {
     btn.className = 'preset-btn';
     btn.textContent = name;
     btn.addEventListener('click', () => {
-      // Apply preset
       const preset = presets[name];
+      currentEngine = preset.engine || null;
       Object.keys(preset).forEach(key => {
+        if (key === 'engine') return;
         params[key].value = preset[key];
         const slider = document.getElementById(`slider-${key}`);
         if (slider) {
