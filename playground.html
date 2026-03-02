@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sound Physics Playground</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    color: #e0d6c8;
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 20px;
+  }
+  h1 {
+    font-size: 1.6rem;
+    color: #D4951A;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .subtitle {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 30px;
+  }
+
+  /* Visualizer */
+  .viz-wrap {
+    width: 100%;
+    max-width: 700px;
+    height: 180px;
+    background: #111;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  #viz { width: 100%; height: 100%; }
+  .viz-label {
+    position: absolute;
+    top: 10px;
+    left: 14px;
+    font-size: 0.65rem;
+    color: #444;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* Play button */
+  .play-zone {
+    margin-bottom: 30px;
+    text-align: center;
+  }
+  #playBtn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px solid #D4951A;
+    background: transparent;
+    color: #D4951A;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    outline: none;
+  }
+  #playBtn:hover { background: rgba(212,149,26,0.1); }
+  #playBtn:active { transform: scale(0.95); background: rgba(212,149,26,0.2); }
+  #playBtn.playing {
+    background: #D4951A;
+    color: #000;
+    box-shadow: 0 0 30px rgba(212,149,26,0.4);
+    animation: breathe 3s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { box-shadow: 0 0 20px rgba(212,149,26,0.3); }
+    50% { box-shadow: 0 0 40px rgba(212,149,26,0.6); }
+  }
+  .play-hint {
+    font-size: 0.75rem;
+    color: #555;
+    margin-top: 10px;
+  }
+
+  /* Presets */
+  .presets {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 28px;
+    max-width: 700px;
+  }
+  .preset-btn {
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    color: #999;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s;
+  }
+  .preset-btn:hover { border-color: #D4951A; color: #D4951A; }
+  .preset-btn.active { border-color: #D4951A; color: #D4951A; background: rgba(212,149,26,0.1); }
+
+  /* Sliders */
+  .controls {
+    width: 100%;
+    max-width: 700px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+  @media (max-width: 500px) { .controls { grid-template-columns: 1fr; } }
+
+  .param {
+    background: #111;
+    border-radius: 10px;
+    padding: 16px 18px;
+    border: 1px solid #1a1a1a;
+  }
+  .param-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .param-name {
+    font-size: 0.8rem;
+    color: #D4951A;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .param-value {
+    font-size: 0.8rem;
+    color: #888;
+    font-variant-numeric: tabular-nums;
+  }
+  .param-desc {
+    font-size: 0.7rem;
+    color: #555;
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: #2a2a2a;
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #D4951A;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(212,149,26,0.3);
+  }
+
+  /* Harmonic display */
+  .harmonics-wrap {
+    width: 100%;
+    max-width: 700px;
+    background: #111;
+    border-radius: 10px;
+    padding: 18px;
+    border: 1px solid #1a1a1a;
+    margin-bottom: 24px;
+  }
+  .harmonics-title {
+    font-size: 0.7rem;
+    color: #D4951A;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .harmonics-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 80px;
+  }
+  .h-bar {
+    flex: 1;
+    background: linear-gradient(to top, #D4951A, #8B6914);
+    border-radius: 3px 3px 0 0;
+    min-width: 20px;
+    transition: height 0.3s ease;
+    position: relative;
+  }
+  .h-bar-label {
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+    color: #555;
+    white-space: nowrap;
+  }
+
+  .footer {
+    font-size: 0.7rem;
+    color: #333;
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<h1>🔬 Sound Physics Playground</h1>
+<p class="subtitle">Sculpt sound by shaping physical properties</p>
+
+<div class="viz-wrap">
+  <span class="viz-label">Waveform</span>
+  <canvas id="viz"></canvas>
+</div>
+
+<div class="play-zone">
+  <button id="playBtn" onclick="togglePlay()">▶</button>
+  <div class="play-hint">Tap to strike · Adjust parameters to reshape</div>
+</div>
+
+<div class="presets" id="presets"></div>
+
+<div class="harmonics-wrap">
+  <div class="harmonics-title">Harmonic Spectrum</div>
+  <div class="harmonics-bars" id="harmonicBars"></div>
+</div>
+
+<div class="controls" id="controls"></div>
+
+<div class="footer">Earth Harmony Sound Lab · Physics → Sound → Healing</div>
+
+<script>
+// ============================================
+// PARAMETERS
+// ============================================
+const params = {
+  fundamental: { value: 120, min: 30, max: 800, step: 1, name: 'Fundamental', unit: 'Hz', desc: 'Base frequency — the root pitch of the resonating body' },
+  material: { value: 0.5, min: 0, max: 1, step: 0.01, name: 'Material', unit: '', desc: 'Metal → Crystal → Wood. Shifts harmonic ratios from inharmonic to harmonic' },
+  damping: { value: 8, min: 0.5, max: 25, step: 0.5, name: 'Damping', unit: 's', desc: 'How long sound sustains — the "death of the note"' },
+  chaos: { value: 0.04, min: 0, max: 0.2, step: 0.005, name: 'Chaos', unit: '', desc: 'Frequency instability — shimmer, wobble, the life in the sound' },
+  density: { value: 6, min: 2, max: 12, step: 1, name: 'Density', unit: '', desc: 'Number of overtones — sparse vs rich harmonic content' },
+  inharmonicity: { value: 0.3, min: 0, max: 1, step: 0.01, name: 'Inharmonicity', unit: '', desc: 'How "off" the overtones are from perfect ratios. Bells and gongs are highly inharmonic' },
+  brightness: { value: 0.5, min: 0, max: 1, step: 0.01, name: 'Brightness', unit: '', desc: 'Energy in upper partials — dull and warm vs bright and present' },
+  attack: { value: 0.02, min: 0.001, max: 0.5, step: 0.001, name: 'Attack', unit: 's', desc: 'Strike hardness — sharp metallic hit vs soft mallet' },
+  subBass: { value: 0.3, min: 0, max: 1, step: 0.01, name: 'Sub Bass', unit: '', desc: 'Low-end rumble — the vibration you feel in your chest' },
+  beatFreq: { value: 0, min: 0, max: 8, step: 0.1, name: 'Beat Frequency', unit: 'Hz', desc: 'Interference pattern between close frequencies — binaural-like pulsing' }
+};
+
+// ============================================
+// PRESETS
+// ============================================
+const presets = {
+  'Tibetan Bowl': { fundamental: 256, material: 0.3, damping: 10, chaos: 0.025, density: 5, inharmonicity: 0.4, brightness: 0.5, attack: 0.02, subBass: 0.2, beatFreq: 1.5 },
+  'Deep Gong': { fundamental: 80, material: 0.2, damping: 18, chaos: 0.12, density: 10, inharmonicity: 0.7, brightness: 0.6, attack: 0.05, subBass: 0.8, beatFreq: 0 },
+  'Crystal Bowl': { fundamental: 432, material: 0.8, damping: 14, chaos: 0.005, density: 3, inharmonicity: 0.05, brightness: 0.3, attack: 0.01, subBass: 0.1, beatFreq: 0.5 },
+  'Wind Chime': { fundamental: 600, material: 0.5, damping: 4, chaos: 0.02, density: 4, inharmonicity: 0.5, brightness: 0.9, attack: 0.005, subBass: 0, beatFreq: 0 },
+  'Handpan': { fundamental: 294, material: 0.35, damping: 5, chaos: 0.015, density: 5, inharmonicity: 0.15, brightness: 0.4, attack: 0.015, subBass: 0.15, beatFreq: 0 },
+  'Drone Pad': { fundamental: 60, material: 0.6, damping: 25, chaos: 0.08, density: 8, inharmonicity: 0.3, brightness: 0.35, attack: 0.4, subBass: 0.7, beatFreq: 2 },
+  'Tuning Fork': { fundamental: 528, material: 0.9, damping: 8, chaos: 0.002, density: 2, inharmonicity: 0, brightness: 0.2, attack: 0.01, subBass: 0, beatFreq: 0.5 },
+  'Flumie Overtones': { fundamental: 100, material: 0.25, damping: 20, chaos: 0.1, density: 10, inharmonicity: 0.6, brightness: 0.55, attack: 0.08, subBass: 0.6, beatFreq: 1.2 }
+};
+
+// ============================================
+// AUDIO ENGINE
+// ============================================
+let audioCtx = null;
+let analyser = null;
+let masterGain = null;
+let isPlaying = false;
+let currentNodes = [];
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.25;
+  masterGain.connect(analyser);
+  analyser.connect(audioCtx.destination);
+}
+
+function generateHarmonicRatios(count, inharmonicity) {
+  const ratios = [];
+  for (let i = 1; i <= count; i++) {
+    // Perfect harmonic = i, fully inharmonic = i * (1 + random spread)
+    const spread = inharmonicity * (Math.pow(i, 1.2) - i) * 0.5;
+    const jitter = inharmonicity * (Math.random() - 0.5) * 0.3 * i;
+    ratios.push(i + spread + jitter);
+  }
+  return ratios;
+}
+
+function getHarmonicAmps(count, brightness, material) {
+  const amps = [];
+  for (let i = 0; i < count; i++) {
+    // Base rolloff
+    let amp = 1 / Math.pow(i + 1, 1.5 - brightness);
+    // Material affects odd/even balance
+    if (i % 2 === 1) amp *= (0.5 + material * 0.5);
+    amps.push(Math.min(amp, 1));
+  }
+  return amps;
+}
+
+function strike() {
+  initAudio();
+  // Clean up old nodes
+  currentNodes.forEach(n => { try { n.stop(); } catch(e){} });
+  currentNodes = [];
+
+  const p = {};
+  Object.keys(params).forEach(k => p[k] = params[k].value);
+  const now = audioCtx.currentTime;
+
+  const harmonicRatios = generateHarmonicRatios(p.density, p.inharmonicity);
+  const harmonicAmps = getHarmonicAmps(p.density, p.brightness, p.material);
+
+  // Master envelope
+  const env = audioCtx.createGain();
+  env.gain.setValueAtTime(0, now);
+  env.gain.linearRampToValueAtTime(0.8, now + p.attack);
+  env.gain.exponentialRampToValueAtTime(0.001, now + p.damping);
+  env.connect(masterGain);
+
+  // Harmonics
+  harmonicRatios.forEach((ratio, i) => {
+    const freq = p.fundamental * ratio;
+    if (freq > 20000) return;
+
+    const osc = audioCtx.createOscillator();
+    const hGain = audioCtx.createGain();
+
+    // Material affects waveform
+    if (p.material < 0.3) osc.type = 'sawtooth'; // metallic
+    else if (p.material < 0.7) osc.type = 'triangle'; // crystal-like
+    else osc.type = 'sine'; // pure/wood
+
+    osc.frequency.value = freq;
+    hGain.gain.value = harmonicAmps[i] || 0.1;
+
+    // Chaos — frequency modulation
+    if (p.chaos > 0) {
+      const lfo = audioCtx.createOscillator();
+      const lfoGain = audioCtx.createGain();
+      lfo.frequency.value = 0.2 + Math.random() * 3;
+      lfoGain.gain.value = freq * p.chaos * (1 + Math.random());
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+      lfo.start(now);
+      lfo.stop(now + p.damping + 1);
+      currentNodes.push(lfo);
+    }
+
+    // Individual harmonic decay (higher = faster)
+    const hEnv = audioCtx.createGain();
+    const hDecay = p.damping / (1 + (i * 0.15 * (1 - p.material * 0.5)));
+    hEnv.gain.setValueAtTime(1, now);
+    hEnv.gain.exponentialRampToValueAtTime(0.001, now + hDecay);
+
+    osc.connect(hGain);
+    hGain.connect(hEnv);
+    hEnv.connect(env);
+    osc.start(now);
+    osc.stop(now + p.damping + 1);
+    currentNodes.push(osc);
+  });
+
+  // Beat frequency (second slightly detuned fundamental)
+  if (p.beatFreq > 0) {
+    const osc2 = audioCtx.createOscillator();
+    osc2.type = 'sine';
+    osc2.frequency.value = p.fundamental + p.beatFreq;
+    const g2 = audioCtx.createGain();
+    g2.gain.value = 0.5;
+    osc2.connect(g2);
+    g2.connect(env);
+    osc2.start(now);
+    osc2.stop(now + p.damping + 1);
+    currentNodes.push(osc2);
+  }
+
+  // Sub bass
+  if (p.subBass > 0) {
+    const sub = audioCtx.createOscillator();
+    sub.type = 'sine';
+    sub.frequency.value = p.fundamental / 2;
+    const subGain = audioCtx.createGain();
+    subGain.gain.value = p.subBass * 0.6;
+    const subEnv = audioCtx.createGain();
+    subEnv.gain.setValueAtTime(1, now);
+    subEnv.gain.exponentialRampToValueAtTime(0.001, now + p.damping * 0.8);
+    sub.connect(subGain);
+    subGain.connect(subEnv);
+    subEnv.connect(env);
+    sub.start(now);
+    sub.stop(now + p.damping + 1);
+    currentNodes.push(sub);
+  }
+
+  // Noise transient (strike)
+  if (p.attack < 0.1) {
+    const bufSize = audioCtx.sampleRate * 0.1;
+    const noiseBuf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const data = noiseBuf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.3;
+    const nSrc = audioCtx.createBufferSource();
+    nSrc.buffer = noiseBuf;
+    const nFilter = audioCtx.createBiquadFilter();
+    nFilter.type = 'bandpass';
+    nFilter.frequency.value = p.fundamental * 3;
+    nFilter.Q.value = 1;
+    const nEnv = audioCtx.createGain();
+    nEnv.gain.setValueAtTime(0.4, now);
+    nEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    nSrc.connect(nFilter);
+    nFilter.connect(nEnv);
+    nEnv.connect(masterGain);
+    nSrc.start(now);
+    nSrc.stop(now + 0.15);
+    currentNodes.push(nSrc);
+  }
+
+  // Update harmonic display
+  updateHarmonicBars(harmonicRatios, harmonicAmps);
+
+  isPlaying = true;
+  document.getElementById('playBtn').classList.add('playing');
+  document.getElementById('playBtn').textContent = '◉';
+  setTimeout(() => {
+    isPlaying = false;
+    document.getElementById('playBtn').classList.remove('playing');
+    document.getElementById('playBtn').textContent = '▶';
+  }, p.damping * 1000);
+}
+
+function togglePlay() {
+  strike();
+}
+
+// ============================================
+// UI
+// ============================================
+function buildControls() {
+  const container = document.getElementById('controls');
+  Object.keys(params).forEach(key => {
+    const p = params[key];
+    const div = document.createElement('div');
+    div.className = 'param';
+    div.innerHTML = `
+      <div class="param-header">
+        <span class="param-name">${p.name}</span>
+        <span class="param-value" id="val-${key}">${formatVal(p.value, p.unit)}</span>
+      </div>
+      <div class="param-desc">${p.desc}</div>
+      <input type="range" id="slider-${key}" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.value}">
+    `;
+    container.appendChild(div);
+
+    div.querySelector('input').addEventListener('input', (e) => {
+      params[key].value = parseFloat(e.target.value);
+      document.getElementById(`val-${key}`).textContent = formatVal(params[key].value, p.unit);
+    });
+  });
+}
+
+function formatVal(v, unit) {
+  if (unit === 'Hz') return Math.round(v) + ' Hz';
+  if (unit === 's') return v.toFixed(1) + 's';
+  return v.toFixed(v < 1 ? 3 : 1);
+}
+
+function buildPresets() {
+  const container = document.getElementById('presets');
+  Object.keys(presets).forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn';
+    btn.textContent = name;
+    btn.addEventListener('click', () => {
+      // Apply preset
+      const preset = presets[name];
+      Object.keys(preset).forEach(key => {
+        params[key].value = preset[key];
+        const slider = document.getElementById(`slider-${key}`);
+        if (slider) {
+          slider.value = preset[key];
+          document.getElementById(`val-${key}`).textContent = formatVal(preset[key], params[key].unit);
+        }
+      });
+      // Highlight
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      // Auto-play
+      strike();
+    });
+    container.appendChild(btn);
+  });
+}
+
+function updateHarmonicBars(ratios, amps) {
+  const container = document.getElementById('harmonicBars');
+  container.innerHTML = '';
+  const maxAmp = Math.max(...amps);
+  ratios.forEach((ratio, i) => {
+    const bar = document.createElement('div');
+    bar.className = 'h-bar';
+    const height = (amps[i] / maxAmp) * 70;
+    bar.style.height = height + 'px';
+    bar.style.opacity = 0.4 + (amps[i] / maxAmp) * 0.6;
+    bar.innerHTML = `<span class="h-bar-label">${ratio.toFixed(1)}x</span>`;
+    container.appendChild(bar);
+  });
+}
+
+// ============================================
+// VISUALIZER
+// ============================================
+function initViz() {
+  const canvas = document.getElementById('viz');
+  const ctx = canvas.getContext('2d');
+  function resize() {
+    canvas.width = canvas.offsetWidth * 2;
+    canvas.height = canvas.offsetHeight * 2;
+    ctx.scale(2, 2);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const bufLen = 1024;
+  const dataArray = new Uint8Array(bufLen);
+
+  function draw() {
+    requestAnimationFrame(draw);
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    ctx.clearRect(0, 0, w, h);
+
+    if (!analyser) {
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(212,149,26,0.1)';
+      ctx.lineWidth = 1;
+      const t = Date.now() / 3000;
+      for (let x = 0; x < w; x++) {
+        const y = h/2 + Math.sin(x/100 + t) * 10;
+        x === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+      return;
+    }
+
+    analyser.getByteTimeDomainData(dataArray);
+    ctx.beginPath();
+    const grad = ctx.createLinearGradient(0,0,w,0);
+    grad.addColorStop(0, 'rgba(212,149,26,0.7)');
+    grad.addColorStop(0.5, 'rgba(155,89,182,0.5)');
+    grad.addColorStop(1, 'rgba(46,204,113,0.5)');
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = 'rgba(212,149,26,0.3)';
+
+    const sliceW = w / bufLen;
+    let x = 0;
+    for (let i = 0; i < bufLen; i++) {
+      const v = dataArray[i] / 128.0;
+      const y = v * h / 2;
+      i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      x += sliceW;
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+  draw();
+}
+
+// Init
+buildControls();
+buildPresets();
+updateHarmonicBars([1,2,3,4,5,6], [1,0.6,0.4,0.25,0.15,0.1]);
+initViz();
+</script>
+
+</body>
+</html>
