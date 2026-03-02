@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html><head><title>Gong Test</title></head>
+<body style="background:#0a0a0a;color:#D4951A;font-family:sans-serif;text-align:center;padding:60px;">
+<h1>Gong A/B Test</h1>
+<p style="color:#888;">Both buttons use identical code. Compare with Explorer.</p>
+<br><br>
+<button onclick="playGong()" style="font-size:2rem;padding:30px 60px;background:#D4951A;color:#000;border:none;border-radius:12px;cursor:pointer;">
+🌊 STRIKE GONG
+</button>
+<script>
+let audioCtx = null;
+let masterGain = null;
+
+function playGong() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.3;
+    masterGain.connect(audioCtx.destination);
+  }
+
+  const now = audioCtx.currentTime;
+  const decay = 15;
+  const fundamental = 80;
+  const shimmer = 0.08;
+  const harmonics = [1, 1.35, 1.72, 2.18, 2.85, 3.5, 4.8, 6.1];
+  const harmonicAmps = [1, 0.8, 0.6, 0.5, 0.35, 0.25, 0.15, 0.1];
+
+  // Exact same envelope as Explorer
+  const env = audioCtx.createGain();
+  env.gain.setValueAtTime(0, now);
+  env.gain.linearRampToValueAtTime(0.7, now + 0.05);
+  env.gain.exponentialRampToValueAtTime(0.001, now + decay);
+  env.connect(masterGain);
+
+  // Exact same harmonics as Explorer
+  harmonics.forEach((h, i) => {
+    const osc = audioCtx.createOscillator();
+    const hGain = audioCtx.createGain();
+    osc.frequency.value = fundamental * h;
+    // Gong: heavy frequency modulation for chaotic shimmer
+    const lfo = audioCtx.createOscillator();
+    const lfoGain = audioCtx.createGain();
+    lfo.frequency.value = 0.1 + Math.random() * 3;
+    lfoGain.gain.value = fundamental * h * shimmer * (1 + Math.random());
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+    lfo.start(now);
+    lfo.stop(now + decay + 1);
+    hGain.gain.value = harmonicAmps[i];
+    osc.connect(hGain);
+    hGain.connect(env);
+    osc.start(now);
+    osc.stop(now + decay + 1);
+  });
+
+  // Sub-bass rumble — exact same as Explorer
+  const noise = audioCtx.createOscillator();
+  noise.frequency.value = 40;
+  noise.type = 'triangle';
+  const nGain = audioCtx.createGain();
+  nGain.gain.value = 0.4;
+  noise.connect(nGain);
+  nGain.connect(env);
+  noise.start(now);
+  noise.stop(now + decay + 1);
+}
+</script>
+</body>
+</html>
